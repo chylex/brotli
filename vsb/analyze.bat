@@ -1,0 +1,1 @@
+python ..\research\brotlidump.py compressed.br
