@@ -972,6 +972,8 @@ static BROTLI_BOOL CompressFiles(Context* context) {
 }
 
 int main(int argc, char** argv) {
+  DBG_RESET_
+
   Command command;
   Context context;
   BROTLI_BOOL is_ok = BROTLI_TRUE;
@@ -1055,6 +1057,8 @@ int main(int argc, char** argv) {
 
   free(context.modified_path);
   free(context.buffer);
+
+  system("pause");
 
   if (!is_ok) exit(1);
   return 0;
