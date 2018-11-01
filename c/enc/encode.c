@@ -696,6 +696,7 @@ static BROTLI_BOOL EnsureInitialized(BrotliEncoderState* s) {
   }
 
   if (s->params.quality == FAST_ONE_PASS_COMPRESSION_QUALITY) {
+    DBG("quality == 0, initializing default prefix codes")
     InitCommandPrefixCodes(s->cmd_depths_, s->cmd_bits_,
                            s->cmd_code_, &s->cmd_code_numbits_);
   }

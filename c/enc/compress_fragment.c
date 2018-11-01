@@ -108,6 +108,11 @@ static size_t BuildAndStoreLiteralPrefixCode(MemoryManager* m,
       histogram_total += adjust;
     }
   }
+
+  DBG("(histogram start)")
+  DBG_ARR_COND(histogram, 256, "%3c", "%d", histogram[index] > 0)
+  DBG("(histogram end)")
+
   BrotliBuildAndStoreHuffmanTreeFast(m, histogram, histogram_total,
                                      /* max_bits = */ 8,
                                      depths, bits, storage_ix, storage);
@@ -180,6 +185,7 @@ static BROTLI_INLINE void EmitInsertLen(size_t insertlen,
                                         uint32_t histo[128],
                                         size_t* storage_ix,
                                         uint8_t* storage) {
+  DBG_P_VAR("preparing to emit literals (short),", insertlen, zu)
   if (insertlen < 6) {
     const size_t code = insertlen + 40;
     BrotliWriteBits(depth[code], bits[code], storage_ix, storage);
@@ -212,6 +218,7 @@ static BROTLI_INLINE void EmitLongInsertLen(size_t insertlen,
                                             uint32_t histo[128],
                                             size_t* storage_ix,
                                             uint8_t* storage) {
+  DBG_P_VAR("preparing to emit literals (long),", insertlen, zu)
   if (insertlen < 22594) {
     BrotliWriteBits(depth[62], bits[62], storage_ix, storage);
     BrotliWriteBits(14, insertlen - 6210, storage_ix, storage);
@@ -229,6 +236,7 @@ static BROTLI_INLINE void EmitCopyLen(size_t copylen,
                                       uint32_t histo[128],
                                       size_t* storage_ix,
                                       uint8_t* storage) {
+  DBG_P_VAR("emitting", copylen, zu)
   if (copylen < 10) {
     BrotliWriteBits(
         depth[copylen + 14], bits[copylen + 14], storage_ix, storage);
@@ -261,6 +269,7 @@ static BROTLI_INLINE void EmitCopyLenLastDistance(size_t copylen,
                                                   uint32_t histo[128],
                                                   size_t* storage_ix,
                                                   uint8_t* storage) {
+  DBG_P_VAR("emitting", copylen, zu)
   if (copylen < 12) {
     BrotliWriteBits(depth[copylen - 4], bits[copylen - 4], storage_ix, storage);
     ++histo[copylen - 4];
@@ -303,6 +312,7 @@ static BROTLI_INLINE void EmitDistance(size_t distance,
                                        const uint16_t bits[128],
                                        uint32_t histo[128],
                                        size_t* storage_ix, uint8_t* storage) {
+  DBG_P_VAR("emitting", distance, zu)
   const size_t d = distance + 3;
   const uint32_t nbits = Log2FloorNonZero(d) - 1u;
   const size_t prefix = (d >> nbits) & 1;
@@ -317,11 +327,24 @@ static BROTLI_INLINE void EmitLiterals(const uint8_t* input, const size_t len,
                                        const uint8_t depth[256],
                                        const uint16_t bits[256],
                                        size_t* storage_ix, uint8_t* storage) {
+  DBG_START_
+  BROTLI_BOOL printed_gap = BROTLI_FALSE;
+  const int PRINT_MARGIN = 16;
+
   size_t j;
   for (j = 0; j < len; j++) {
     const uint8_t lit = input[j];
     BrotliWriteBits(depth[lit], bits[lit], storage_ix, storage);
+
+    if (j < PRINT_MARGIN || j >= len - PRINT_MARGIN){
+      DBG_CHAR(lit, c)
+    }
+    else if (!printed_gap){
+      DBG("(...)")
+      printed_gap = BROTLI_TRUE;
+    }
   }
+  DBG_END_
 }
 
 /* REQUIRES: len <= 1 << 24. */
@@ -461,12 +484,18 @@ static BROTLI_INLINE void BrotliCompressFragmentFastImpl(
 
   const size_t shift = 64u - table_bits;
 
+  DBG_START("BrotliCompressFragmentFastImpl")
+
   BrotliStoreMetaBlockHeader(block_size, 0, storage_ix, storage);
+  DBG_P_VAR("storing meta block header with", block_size, zu)
+
   /* No block splits, no contexts. */
   BrotliWriteBits(13, 0, storage_ix, storage);
 
   literal_ratio = BuildAndStoreLiteralPrefixCode(
       m, input, block_size, lit_depth, lit_bits, storage_ix, storage);
+  DBG_P_VAR("estimated", literal_ratio, zu)
+
   if (BROTLI_IS_OOM(m)) return;
 
   {
@@ -500,6 +529,9 @@ static BROTLI_INLINE void BrotliCompressFragmentFastImpl(
                                         input_size - kInputMarginBytes);
     const uint8_t* ip_limit = input + len_limit;
 
+    DBG("searching for 5 byte match")
+    DBG_P_OFFCHAR(" starting at position", ip, base_ip)
+
     uint32_t next_hash;
     for (next_hash = Hash(++ip, shift); ; ) {
       /* Step 1: Scan forward in the input looking for a 5-byte-long match.
@@ -530,13 +562,19 @@ trawl:
         ip = next_ip;
         next_ip = ip + bytes_between_hash_lookups;
         if (BROTLI_PREDICT_FALSE(next_ip > ip_limit)) {
+          DBG("searching went past end of input")
           goto emit_remainder;
         }
         next_hash = Hash(next_ip, shift);
         candidate = ip - last_distance;
+
+        DBG_P_OFFCHAR("checking for match at", ip, base_ip)
+        DBG_P_OFFCHAR("    against candidate", candidate, base_ip)
+
         if (IsMatch(ip, candidate)) {
           if (BROTLI_PREDICT_TRUE(candidate < ip)) {
             table[hash] = (int)(ip - base_ip);
+            DBG("match successful (break out)")
             break;
           }
         }
@@ -547,9 +585,14 @@ trawl:
         table[hash] = (int)(ip - base_ip);
       } while (BROTLI_PREDICT_TRUE(!IsMatch(ip, candidate)));
 
+      DBG("match successful (while condition end)")
+
       /* Check copy distance. If candidate is not feasible, continue search.
          Checking is done outside of hot loop to reduce overhead. */
-      if (ip - candidate > MAX_DISTANCE) goto trawl;
+      if (ip - candidate > MAX_DISTANCE){
+        DBG("just kidding, distance too high (%zu > %lu)", (ip - candidate), MAX_DISTANCE)
+        goto trawl;
+      }
 
       /* Step 2: Emit the found match together with the literal bytes from
          "next_emit" to the bit stream, and then see if we can find a next match
@@ -562,6 +605,11 @@ trawl:
         const uint8_t* base = ip;
         size_t matched = 5 + FindMatchLengthWithLimit(
             candidate + 5, ip + 5, (size_t)(ip_end - ip) - 5);
+        DBG_P_VAR("determining full match,", matched, zu)
+        DBG("(match start)")
+        DBG_STR(base, base + matched)
+        DBG("(match end)")
+
         int distance = (int)(base - candidate);  /* > 0 */
         size_t insert = (size_t)(base - next_emit);
         ip += matched;
@@ -571,6 +619,7 @@ trawl:
                         storage_ix, storage);
         } else if (ShouldUseUncompressedMode(metablock_start, next_emit, insert,
                                              literal_ratio)) {
+          DBG("insert length %zu >= 6120 and bad compression ratio => resetting and emitting uncompressed meta block instead", insert)
           EmitUncompressedMetaBlock(metablock_start, base, mlen_storage_ix - 3,
                                     storage_ix, storage);
           input_size -= (size_t)(base - input);
@@ -583,7 +632,9 @@ trawl:
         }
         EmitLiterals(next_emit, insert, lit_depth, lit_bits,
                      storage_ix, storage);
+        DBG("emitting copy command for previous match")
         if (distance == last_distance) {
+          DBG("skipping distance code (same as last distance)")
           BrotliWriteBits(cmd_depth[64], cmd_bits[64], storage_ix, storage);
           ++cmd_histo[64];
         } else {
@@ -623,6 +674,11 @@ trawl:
         size_t matched = 5 + FindMatchLengthWithLimit(
             candidate + 5, ip + 5, (size_t)(ip_end - ip) - 5);
         if (ip - candidate > MAX_DISTANCE) break;
+        DBG_P_OFFCHAR("continuing to match at", ip, base_ip)
+        DBG_P_VAR("determining full match,", matched, zu)
+        DBG("(match start)")
+        DBG_STR(base, base + matched)
+        DBG("(match end)")
         ip += matched;
         last_distance = (int)(base - candidate);  /* > 0 */
         BROTLI_DCHECK(0 == memcmp(base, candidate, matched));
@@ -658,6 +714,7 @@ trawl:
   }
 
  emit_remainder:
+  DBG("emitting rest as literals")
   BROTLI_DCHECK(next_emit <= ip_end);
   input += block_size;
   input_size -= block_size;
@@ -686,6 +743,7 @@ trawl:
       EmitLiterals(next_emit, insert, lit_depth, lit_bits, storage_ix, storage);
     } else if (ShouldUseUncompressedMode(metablock_start, next_emit, insert,
                                          literal_ratio)) {
+      DBG("insert length %zu >= 6120 and bad compression ratio => resetting and emitting uncompressed meta block instead", insert)
       EmitUncompressedMetaBlock(metablock_start, ip_end, mlen_storage_ix - 3,
                                 storage_ix, storage);
     } else {
@@ -726,6 +784,8 @@ next_block:
     BuildAndStoreCommandPrefixCode(cmd_histo, cmd_depth, cmd_bits,
                                    cmd_code_numbits, cmd_code);
   }
+
+  DBG_END("BrotliCompressFragmentFastImpl")
 }
 
 #define FOR_TABLE_BITS_(X) X(9) X(11) X(13) X(15)
@@ -750,11 +810,16 @@ void BrotliCompressFragmentFast(
   const size_t initial_storage_ix = *storage_ix;
   const size_t table_bits = Log2FloorNonZero(table_size);
 
+  DBG_START("BrotliCompressFragmentFast")
+  DBG_VAR(input_size, zu)
+  DBG_VAR(is_last, d)
+  
   if (input_size == 0) {
     BROTLI_DCHECK(is_last);
     BrotliWriteBits(1, 1, storage_ix, storage);  /* islast */
     BrotliWriteBits(1, 1, storage_ix, storage);  /* isempty */
     *storage_ix = (*storage_ix + 7u) & ~7u;
+    DBG_END("BrotliCompressFragmentFast")
     return;
   }
 
@@ -771,7 +836,11 @@ void BrotliCompressFragmentFast(
   }
 
   /* If output is larger than single uncompressed block, rewrite it. */
+  DBG("input size = %zu bits", (input_size << 3))
+  DBG("compressed size = %zu bits", (*storage_ix - initial_storage_ix))
+  DBG("uncompressed estimation = %zu bits", (31 + (input_size << 3)))
   if (*storage_ix - initial_storage_ix > 31 + (input_size << 3)) {
+    DBG("resetting metablock and emitting uncompressed data instead")
     EmitUncompressedMetaBlock(input, input + input_size, initial_storage_ix,
                               storage_ix, storage);
   }
@@ -781,6 +850,8 @@ void BrotliCompressFragmentFast(
     BrotliWriteBits(1, 1, storage_ix, storage);  /* isempty */
     *storage_ix = (*storage_ix + 7u) & ~7u;
   }
+
+  DBG_END("BrotliCompressFragmentFast")
 }
 
 #undef FOR_TABLE_BITS_
