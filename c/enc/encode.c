@@ -1856,6 +1856,99 @@ uint32_t BrotliEncoderVersion(void) {
   return BROTLI_VERSION;
 }
 
+
+
+
+
+
+
+
+
+// TODO testing
+
+
+
+
+
+static size_t IndexOf(const uint8_t* v, size_t v_size, uint8_t value) {
+  size_t i = 0;
+  for (; i < v_size; ++i) {
+    if (v[i] == value) return i;
+  }
+  return i;
+}
+
+static void MoveToFront(uint8_t* v, size_t index) {
+  uint8_t value = v[index];
+  size_t i;
+  for (i = index; i != 0; --i) {
+    v[i] = v[i - 1];
+  }
+  v[0] = value;
+}
+
+static void MoveToFrontTransform(const uint32_t* BROTLI_RESTRICT v_in,
+                                 const size_t v_size,
+                                 uint32_t* v_out) {
+  size_t i;
+  uint8_t mtf[256];
+  uint32_t max_value;
+  if (v_size == 0) {
+    return;
+  }
+  max_value = v_in[0];
+  for (i = 1; i < v_size; ++i) {
+    if (v_in[i] > max_value) max_value = v_in[i];
+  }
+  BROTLI_DCHECK(max_value < 256u);
+  for (i = 0; i <= max_value; ++i) {
+    mtf[i] = (uint8_t)i;
+  }
+  {
+    size_t mtf_size = max_value + 1;
+    for (i = 0; i < v_size; ++i) {
+      size_t index = IndexOf(mtf, mtf_size, (uint8_t)v_in[i]);
+      BROTLI_DCHECK(index < mtf_size);
+      v_out[i] = (uint32_t)index;
+      MoveToFront(mtf, index);
+    }
+  }
+}
+
+void vsb_debug_test(){
+  uint32_t* ctxmap = malloc(sizeof(uint32_t) * 6);
+
+  for(int index = 0; index < 6; index++){
+    ctxmap[index] = 0;
+  }
+
+  ctxmap[0] = 255;
+  ctxmap[1] = 0;
+  ctxmap[2] = 255;
+  ctxmap[3] = 0;
+  ctxmap[4] = 255;
+  ctxmap[5] = 0;
+
+  MoveToFrontTransform(ctxmap, 6, ctxmap);
+  DBG_ARR(ctxmap, 0, 5, "%3c", "%d")
+
+  free(ctxmap);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(__cplusplus) || defined(c_plusplus)
 }  /* extern "C" */
 #endif

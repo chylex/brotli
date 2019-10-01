@@ -1014,6 +1014,9 @@ static BROTLI_BOOL CompressFiles(Context* context) {
 int main(int argc, char** argv) {
   DBG_RESET_
 
+  // TODO
+  vsb_debug_test();
+
   Command command;
   Context context;
   BROTLI_BOOL is_ok = BROTLI_TRUE;

@@ -132,7 +132,18 @@ void BrotliCreateBackwardReferences(
           ringbuffer_mask, params, hasher, dist_cache,            \
           last_insert_len, commands, num_commands, num_literals); \
       return;
-    FOR_GENERIC_HASHERS(CASE_)
+    case 2: CreateBackwardReferencesNH2( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 3: CreateBackwardReferencesNH3( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 4: CreateBackwardReferencesNH4( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 5: CreateBackwardReferencesNH5( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 6: CreateBackwardReferencesNH6( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 40: CreateBackwardReferencesNH40( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 41: CreateBackwardReferencesNH41( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 42: CreateBackwardReferencesNH42( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 54: CreateBackwardReferencesNH54( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 35: CreateBackwardReferencesNH35( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 55: CreateBackwardReferencesNH55( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
+    case 65: CreateBackwardReferencesNH65( num_bytes, position, ringbuffer, ringbuffer_mask, params, hasher, dist_cache, last_insert_len, commands, num_commands, num_literals); return;
 #undef CASE_
     default:
       break;

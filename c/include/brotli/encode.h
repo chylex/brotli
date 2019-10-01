@@ -420,6 +420,8 @@ BROTLI_ENC_API const uint8_t* BrotliEncoderTakeOutput(
  */
 BROTLI_ENC_API uint32_t BrotliEncoderVersion(void);
 
+BROTLI_ENC_API void vsb_debug_test(void);
+
 #if defined(__cplusplus) || defined(c_plusplus)
 }  /* extern "C" */
 #endif
