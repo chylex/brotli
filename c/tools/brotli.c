@@ -528,7 +528,7 @@ static void PrintVersion(void) {
   int major = BROTLI_VERSION >> 24;
   int minor = (BROTLI_VERSION >> 12) & 0xFFF;
   int patch = BROTLI_VERSION & 0xFFF;
-  fprintf(stdout, "brotli %d.%d.%d\n", major, minor, patch);
+  fprintf(stdout, "brotli %d.%d.%d-c435f06 (unofficial build)\n", major, minor, patch);
 }
 
 static void PrintHelp(const char* name, BROTLI_BOOL error) {
