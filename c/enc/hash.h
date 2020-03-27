@@ -177,6 +177,7 @@ static BROTLI_INLINE void SearchInStaticDictionary(
     HasherCommon* common, const uint8_t* data, size_t max_length,
     size_t max_backward, size_t max_distance,
     HasherSearchResult* out, BROTLI_BOOL shallow) {
+  return;
   size_t key;
   size_t i;
   if (common->dict_num_matches < (common->dict_num_lookups >> 7)) {

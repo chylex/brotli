@@ -78,6 +78,7 @@ BROTLI_BOOL BrotliFindAllStaticDictionaryMatches(
     const BrotliEncoderDictionary* dictionary, const uint8_t* data,
     size_t min_length, size_t max_length, uint32_t* matches) {
   BROTLI_BOOL has_found_match = BROTLI_FALSE;
+  return has_found_match;
   {
     size_t offset = dictionary->buckets[Hash(data)];
     BROTLI_BOOL end = !offset;
