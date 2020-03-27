@@ -150,8 +150,8 @@ void BrotliBuildMetaBlock(MemoryManager* m,
   BrotliEncoderParams orig_params = *params;
   BrotliEncoderParams new_params = *params;
 
-  for (npostfix = 0; npostfix <= BROTLI_MAX_NPOSTFIX; npostfix++) {
-    for (; ndirect_msb < 16; ndirect_msb++) {
+  for (npostfix = 0; npostfix <= 0; npostfix++) {
+    for (; ndirect_msb < 1; ndirect_msb++) {
       uint32_t ndirect = ndirect_msb << npostfix;
       BROTLI_BOOL skip;
       double dist_cost;

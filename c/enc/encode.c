@@ -662,7 +662,7 @@ static void WriteMetaBlockInternal(MemoryManager* m,
 static void ChooseDistanceParams(BrotliEncoderParams* params) {
   uint32_t distance_postfix_bits = 0;
   uint32_t num_direct_distance_codes = 0;
-
+  /*
   if (params->quality >= MIN_QUALITY_FOR_NONZERO_DISTANCE_PARAMS) {
     uint32_t ndirect_msb;
     if (params->mode == BROTLI_MODE_FONT) {
@@ -679,7 +679,7 @@ static void ChooseDistanceParams(BrotliEncoderParams* params) {
       distance_postfix_bits = 0;
       num_direct_distance_codes = 0;
     }
-  }
+  }*/
 
   BrotliInitDistanceParams(
       params, distance_postfix_bits, num_direct_distance_codes);
