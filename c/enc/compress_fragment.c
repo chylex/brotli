@@ -457,7 +457,7 @@ static BROTLI_INLINE void BrotliCompressFragmentFastImpl(
   size_t literal_ratio;
 
   const uint8_t* ip;
-  int last_distance;
+  int last_distance = -1;
 
   const size_t shift = 64u - table_bits;
 
@@ -488,7 +488,6 @@ static BROTLI_INLINE void BrotliCompressFragmentFastImpl(
 
   /* "ip" is the input pointer. */
   ip = input;
-  last_distance = -1;
   ip_end = input + block_size;
 
   if (BROTLI_PREDICT_TRUE(block_size >= kInputMarginBytes)) {
