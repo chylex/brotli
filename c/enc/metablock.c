@@ -135,7 +135,7 @@ void BrotliBuildMetaBlock(MemoryManager* m,
                           ContextType literal_context_mode,
                           MetaBlockSplit* mb) {
   /* Histogram ids need to fit in one byte. */
-  static const size_t kMaxNumberOfHistograms = 256;
+  static const size_t kMaxNumberOfHistograms = 1;
   HistogramDistance* distance_histograms;
   HistogramLiteral* literal_histograms;
   ContextType* literal_context_modes = NULL;

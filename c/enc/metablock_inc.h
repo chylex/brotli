@@ -118,7 +118,7 @@ static void FN(BlockSplitterFinishBlock)(
       diff[j] = combined_entropy[j] - entropy - last_entropy[j];
     }
 
-    if (split->num_types < BROTLI_MAX_NUMBER_OF_BLOCK_TYPES &&
+    if (BROTLI_FALSE && split->num_types < BROTLI_MAX_NUMBER_OF_BLOCK_TYPES &&
         diff[0] > self->split_threshold_ &&
         diff[1] > self->split_threshold_) {
       /* Create new block. */
@@ -136,7 +136,7 @@ static void FN(BlockSplitterFinishBlock)(
       self->block_size_ = 0;
       self->merge_last_count_ = 0;
       self->target_block_size_ = self->min_block_size_;
-    } else if (diff[1] < diff[0] - 20.0) {
+    } else if (BROTLI_FALSE && diff[1] < diff[0] - 20.0) {
       /* Combine this block with second last block. */
       split->lengths[self->num_blocks_] = (uint32_t)self->block_size_;
       split->types[self->num_blocks_] = split->types[self->num_blocks_ - 2];

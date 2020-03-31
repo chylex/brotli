@@ -482,6 +482,7 @@ static BROTLI_BOOL ShouldUseComplexStaticContextMap(const uint8_t* input,
 static void DecideOverLiteralContextModeling(const uint8_t* input,
     size_t start_pos, size_t length, size_t mask, int quality, size_t size_hint,
     size_t* num_literal_contexts, const uint32_t** literal_context_map) {
+  return;
   if (quality < MIN_QUALITY_FOR_CONTEXT_MODELING || length < 64) {
     return;
   } else if (ShouldUseComplexStaticContextMap(

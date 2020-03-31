@@ -378,7 +378,7 @@ static void FN(SplitByteVector)(MemoryManager* m,
   if (length == 0) {
     split->num_types = 1;
     return;
-  } else if (length < kMinLengthForBlockSplitting) {
+  } else if (BROTLI_TRUE || length < kMinLengthForBlockSplitting) {
     BROTLI_ENSURE_CAPACITY(m, uint8_t,
         split->types, split->types_alloc_size, split->num_blocks + 1);
     BROTLI_ENSURE_CAPACITY(m, uint32_t,
