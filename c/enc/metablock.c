@@ -640,6 +640,7 @@ void BrotliBuildMetaBlockGreedy(MemoryManager* m,
 
 void BrotliOptimizeHistograms(uint32_t num_distance_codes,
                               MetaBlockSplit* mb) {
+  return;
   uint8_t good_for_rle[BROTLI_NUM_COMMAND_SYMBOLS];
   size_t i;
   for (i = 0; i < mb->literal_histograms_size; ++i) {
