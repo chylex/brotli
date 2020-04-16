@@ -201,20 +201,20 @@ void BrotliBuildMetaBlock(MemoryManager* m,
       literal_context_modes[i] = literal_context_mode;
     }
   }
-
-  literal_histograms_size =
-      mb->literal_split.num_types * literal_context_multiplier;
-  literal_histograms =
-      BROTLI_ALLOC(m, HistogramLiteral, literal_histograms_size);
-  if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(literal_histograms)) return;
-  ClearHistogramsLiteral(literal_histograms, literal_histograms_size);
-
-  distance_histograms_size =
-      mb->distance_split.num_types << BROTLI_DISTANCE_CONTEXT_BITS;
-  distance_histograms =
-      BROTLI_ALLOC(m, HistogramDistance, distance_histograms_size);
-  if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(distance_histograms)) return;
-  ClearHistogramsDistance(distance_histograms, distance_histograms_size);
+  
+  BROTLI_DCHECK(mb->literal_histograms == 0);
+  mb->literal_histograms_size = mb->literal_split.num_types;
+  mb->literal_histograms =
+      BROTLI_ALLOC(m, HistogramLiteral, mb->literal_histograms_size);
+  if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(mb->literal_histograms)) return;
+  ClearHistogramsLiteral(mb->literal_histograms, mb->literal_histograms_size);
+  
+  BROTLI_DCHECK(mb->distance_histograms == 0);
+  mb->distance_histograms_size = mb->distance_split.num_types;
+  mb->distance_histograms =
+      BROTLI_ALLOC(m, HistogramDistance, mb->distance_histograms_size);
+  if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(mb->distance_histograms)) return;
+  ClearHistogramsDistance(mb->distance_histograms, mb->distance_histograms_size);
 
   BROTLI_DCHECK(mb->command_histograms == 0);
   mb->command_histograms_size = mb->command_split.num_types;
@@ -226,7 +226,7 @@ void BrotliBuildMetaBlock(MemoryManager* m,
   BrotliBuildHistogramsWithContext(cmds, num_commands,
       &mb->literal_split, &mb->command_split, &mb->distance_split,
       ringbuffer, pos, mask, prev_byte, prev_byte2, literal_context_modes,
-      literal_histograms, mb->command_histograms, distance_histograms);
+      mb->literal_histograms, mb->command_histograms, mb->distance_histograms);
   BROTLI_FREE(m, literal_context_modes);
 
   BROTLI_DCHECK(mb->literal_context_map == 0);
@@ -236,27 +236,9 @@ void BrotliBuildMetaBlock(MemoryManager* m,
       BROTLI_ALLOC(m, uint32_t, mb->literal_context_map_size);
   if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(mb->literal_context_map)) return;
 
-  BROTLI_DCHECK(mb->literal_histograms == 0);
-  mb->literal_histograms_size = mb->literal_context_map_size;
-  mb->literal_histograms =
-      BROTLI_ALLOC(m, HistogramLiteral, mb->literal_histograms_size);
-  if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(mb->literal_histograms)) return;
-
-  BrotliClusterHistogramsLiteral(m, literal_histograms, literal_histograms_size,
-      kMaxNumberOfHistograms, mb->literal_histograms,
-      &mb->literal_histograms_size, mb->literal_context_map);
-  if (BROTLI_IS_OOM(m)) return;
-  BROTLI_FREE(m, literal_histograms);
-
-  if (params->disable_literal_context_modeling) {
-    /* Distribute assignment to all contexts. */
-    for (i = mb->literal_split.num_types; i != 0;) {
-      size_t j = 0;
-      i--;
-      for (; j < (1 << BROTLI_LITERAL_CONTEXT_BITS); j++) {
-        mb->literal_context_map[(i << BROTLI_LITERAL_CONTEXT_BITS) + j] =
-            mb->literal_context_map[i];
-      }
+  for(i = 0; i < mb->literal_split.num_types; i++) {
+    for (size_t j = 0; j < (1 << BROTLI_LITERAL_CONTEXT_BITS); j++) {
+      mb->literal_context_map[(i << BROTLI_LITERAL_CONTEXT_BITS) + j] = i;
     }
   }
 
@@ -267,20 +249,11 @@ void BrotliBuildMetaBlock(MemoryManager* m,
       BROTLI_ALLOC(m, uint32_t, mb->distance_context_map_size);
   if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(mb->distance_context_map)) return;
 
-  BROTLI_DCHECK(mb->distance_histograms == 0);
-  mb->distance_histograms_size = mb->distance_context_map_size;
-  mb->distance_histograms =
-      BROTLI_ALLOC(m, HistogramDistance, mb->distance_histograms_size);
-  if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(mb->distance_histograms)) return;
-
-  BrotliClusterHistogramsDistance(m, distance_histograms,
-                                  mb->distance_context_map_size,
-                                  kMaxNumberOfHistograms,
-                                  mb->distance_histograms,
-                                  &mb->distance_histograms_size,
-                                  mb->distance_context_map);
-  if (BROTLI_IS_OOM(m)) return;
-  BROTLI_FREE(m, distance_histograms);
+  for(i = 0; i < mb->distance_split.num_types; i++) {
+    for (size_t j = 0; j < (1 << BROTLI_DISTANCE_CONTEXT_BITS); j++) {
+      mb->distance_context_map[(i << BROTLI_DISTANCE_CONTEXT_BITS) + j] = i;
+    }
+  }
 }
 
 #define FN(X) X ## Literal

@@ -167,8 +167,8 @@ BROTLI_BOOL BrotliEncoderSetParameter(
 
     case BROTLI_PARAM_DISABLE_LITERAL_CONTEXT_MODELING:
       if ((value != 0) && (value != 1)) return BROTLI_FALSE;
-      state->params.disable_literal_context_modeling = TO_BROTLI_BOOL(!!value);
-      return BROTLI_TRUE;
+      //state->params.disable_literal_context_modeling = TO_BROTLI_BOOL(!!value);
+      return BROTLI_FALSE;
 
     case BROTLI_PARAM_SIZE_HINT:
       state->params.size_hint = value;
@@ -744,7 +744,7 @@ static void BrotliEncoderInitParams(BrotliEncoderParams* params) {
   params->lgblock = 0;
   params->stream_offset = 0;
   params->size_hint = 0;
-  params->disable_literal_context_modeling = BROTLI_FALSE;
+  params->disable_literal_context_modeling = BROTLI_TRUE;
   BrotliInitEncoderDictionary(&params->dictionary);
   params->dist.distance_postfix_bits = 0;
   params->dist.num_direct_distance_codes = 0;

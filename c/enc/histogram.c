@@ -65,15 +65,8 @@ void BrotliBuildHistogramsWithContext(
         cmd->cmd_prefix_);
     /* TODO: unwrap iterator blocks. */
     for (j = cmd->insert_len_; j != 0; --j) {
-      size_t context;
       BlockSplitIteratorNext(&literal_it);
-      context = literal_it.type_;
-      if (context_modes) {
-        ContextLut lut = BROTLI_CONTEXT_LUT(context_modes[context]);
-        context = (context << BROTLI_LITERAL_CONTEXT_BITS) +
-            BROTLI_CONTEXT(prev_byte, prev_byte2, lut);
-      }
-      HistogramAddLiteral(&literal_histograms[context],
+      HistogramAddLiteral(&literal_histograms[literal_it.type_],
           ringbuffer[pos & mask]);
       prev_byte2 = prev_byte;
       prev_byte = ringbuffer[pos & mask];
@@ -84,11 +77,8 @@ void BrotliBuildHistogramsWithContext(
       prev_byte2 = ringbuffer[(pos - 2) & mask];
       prev_byte = ringbuffer[(pos - 1) & mask];
       if (cmd->cmd_prefix_ >= 128) {
-        size_t context;
         BlockSplitIteratorNext(&dist_it);
-        context = (dist_it.type_ << BROTLI_DISTANCE_CONTEXT_BITS) +
-            CommandDistanceContext(cmd);
-        HistogramAddDistance(&copy_dist_histograms[context],
+        HistogramAddDistance(&copy_dist_histograms[dist_it.type_],
             cmd->dist_prefix_ & 0x3FF);
       }
     }
