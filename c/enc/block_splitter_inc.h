@@ -7,6 +7,7 @@
 
 /* template parameters: FN, DataType */
 
+#include "./metablock_inc.h"
 #define HistogramType FN(Histogram)
 
 static void FN(InitialEntropyCodes)(const DataType* data, size_t length,
@@ -431,6 +432,95 @@ static void FN(SplitByteVector)(MemoryManager* m,
     BROTLI_FREE(m, switch_signal);
     BROTLI_FREE(m, new_id);
     BROTLI_FREE(m, histograms);
+    FN(ClusterBlocks)(m, data, length, num_blocks, block_ids, split);
+    if (BROTLI_IS_OOM(m)) return;
+    BROTLI_FREE(m, block_ids);
+  }
+}
+
+static size_t FN(PrepareSeed)(MemoryManager *m,
+                              const int alphabet_size,
+                              const int min_block_size,
+                              const double split_threshold,
+                              const DataType* data,
+                              const size_t length,
+                              HistogramType** histo) {
+  BlockSplit split;
+  BrotliInitBlockSplit(&split);
+
+  FN(BlockSplitter) splitter;
+  size_t histo_n;
+
+  FN(InitBlockSplitter)(
+    m, &splitter,
+    alphabet_size, min_block_size, split_threshold,
+    length, &split, histo, &histo_n);
+
+  for (size_t i = 0; i < length; i++) {
+    FN(BlockSplitterAddSymbol)(&splitter, data[i]);
+  }
+
+  FN(BlockSplitterFinishBlock)(&splitter, /* is_final = */ BROTLI_TRUE);
+  return histo_n;
+}
+
+static void FN(SplitByteVectorSeeded)(MemoryManager* m,
+                                      const DataType* data,
+                                      const size_t length,
+                                      const double block_switch_cost,
+                                      const BrotliEncoderParams* params,
+                                      BlockSplit* split,
+                                      HistogramType* histograms,
+                                      int num_histograms) {
+  const size_t data_size = FN(HistogramDataSize)();
+
+  if (length == 0) {
+    split->num_types = 1;
+    return;
+  } else if (length < kMinLengthForBlockSplitting) {
+    BROTLI_ENSURE_CAPACITY(m, uint8_t,
+        split->types, split->types_alloc_size, split->num_blocks + 1);
+    BROTLI_ENSURE_CAPACITY(m, uint32_t,
+        split->lengths, split->lengths_alloc_size, split->num_blocks + 1);
+    if (BROTLI_IS_OOM(m)) return;
+    split->num_types = 1;
+    split->types[split->num_blocks] = 0;
+    split->lengths[split->num_blocks] = (uint32_t)length;
+    split->num_blocks++;
+    return;
+  }
+
+  {
+    /* Find a good path through literals with the good entropy codes. */
+    uint8_t* block_ids = BROTLI_ALLOC(m, uint8_t, length);
+    size_t num_blocks = 0;
+    const size_t bitmaplen = (num_histograms + 7) >> 3;
+    double* insert_cost = BROTLI_ALLOC(m, double, data_size * num_histograms);
+    double* cost = BROTLI_ALLOC(m, double, num_histograms);
+    uint8_t* switch_signal = BROTLI_ALLOC(m, uint8_t, length * bitmaplen);
+    uint16_t* new_id = BROTLI_ALLOC(m, uint16_t, num_histograms);
+    const size_t iters = params->quality < HQ_ZOPFLIFICATION_QUALITY ? 3 : 10;
+    size_t i;
+    if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(block_ids) ||
+        BROTLI_IS_NULL(insert_cost) || BROTLI_IS_NULL(cost) ||
+        BROTLI_IS_NULL(switch_signal) || BROTLI_IS_NULL(new_id)) {
+      return;
+    }
+    for (i = 0; i < iters; ++i) {
+      num_blocks = FN(FindBlocks)(data, length,
+                                  block_switch_cost,
+                                  num_histograms, histograms,
+                                  insert_cost, cost, switch_signal,
+                                  block_ids);
+      num_histograms = FN(RemapBlockIds)(block_ids, length,
+                                         new_id, num_histograms);
+      FN(BuildBlockHistograms)(data, length, block_ids,
+                               num_histograms, histograms);
+    }
+    BROTLI_FREE(m, insert_cost);
+    BROTLI_FREE(m, cost);
+    BROTLI_FREE(m, switch_signal);
+    BROTLI_FREE(m, new_id);
     FN(ClusterBlocks)(m, data, length, num_blocks, block_ids, split);
     if (BROTLI_IS_OOM(m)) return;
     BROTLI_FREE(m, block_ids);

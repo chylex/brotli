@@ -119,6 +119,10 @@ void BrotliDestroyBlockSplit(MemoryManager* m, BlockSplit* self) {
   BROTLI_FREE(m, self->lengths);
 }
 
+#define SEED_LITERALS  BROTLI_TRUE
+#define SEED_COMMANDS  BROTLI_TRUE
+#define SEED_DISTANCES BROTLI_TRUE
+
 void BrotliSplitBlock(MemoryManager* m,
                       const Command* cmds,
                       const size_t num_commands,
@@ -135,13 +139,31 @@ void BrotliSplitBlock(MemoryManager* m,
     if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(literals)) return;
     /* Create a continuous array of literals. */
     CopyLiteralsToByteArray(cmds, num_commands, data, pos, mask, literals);
+    
     /* Create the block split on the array of literals.
        Literal histograms have alphabet size 256. */
-    SplitByteVectorLiteral(
-        m, literals, literals_count,
-        kSymbolsPerLiteralHistogram, kMaxLiteralHistograms,
-        kLiteralStrideLength, kLiteralBlockSwitchCost, params,
-        literal_split);
+    if (SEED_LITERALS) {
+      HistogramLiteral* histo;
+      const size_t histo_n = PrepareSeedLiteral(
+        m, 256, 512, 400.0,
+        literals, literals_count,
+        &histo);
+
+      SplitByteVectorSeededLiteral(
+          m, literals, literals_count,
+          kLiteralBlockSwitchCost, params,
+          literal_split, histo, histo_n);
+      
+      if (BROTLI_IS_OOM(m)) return;
+      BROTLI_FREE(m, histo);
+    } else {
+      SplitByteVectorLiteral(
+          m, literals, literals_count,
+          kSymbolsPerLiteralHistogram, kMaxLiteralHistograms,
+          kLiteralStrideLength, kLiteralBlockSwitchCost, params,
+          literal_split);
+    }
+
     if (BROTLI_IS_OOM(m)) return;
     BROTLI_FREE(m, literals);
   }
@@ -154,12 +176,30 @@ void BrotliSplitBlock(MemoryManager* m,
     for (i = 0; i < num_commands; ++i) {
       insert_and_copy_codes[i] = cmds[i].cmd_prefix_;
     }
+    
     /* Create the block split on the array of command prefixes. */
-    SplitByteVectorCommand(
-        m, insert_and_copy_codes, num_commands,
-        kSymbolsPerCommandHistogram, kMaxCommandHistograms,
-        kCommandStrideLength, kCommandBlockSwitchCost, params,
-        insert_and_copy_split);
+    if (SEED_COMMANDS) {
+      HistogramCommand* histo;
+      const size_t histo_n = PrepareSeedCommand(
+        m, BROTLI_NUM_COMMAND_SYMBOLS, 1024, 500.0,
+        insert_and_copy_codes, num_commands,
+        &histo);
+
+      SplitByteVectorSeededCommand(
+          m, insert_and_copy_codes, num_commands,
+          kCommandBlockSwitchCost, params,
+          insert_and_copy_split, histo, histo_n);
+
+      if (BROTLI_IS_OOM(m)) return;
+      BROTLI_FREE(m, histo);
+    } else {
+      SplitByteVectorCommand(
+          m, insert_and_copy_codes, num_commands,
+          kSymbolsPerCommandHistogram, kMaxCommandHistograms,
+          kCommandStrideLength, kCommandBlockSwitchCost, params,
+          insert_and_copy_split);
+    }
+
     if (BROTLI_IS_OOM(m)) return;
     /* TODO: reuse for distances? */
     BROTLI_FREE(m, insert_and_copy_codes);
@@ -177,12 +217,30 @@ void BrotliSplitBlock(MemoryManager* m,
         distance_prefixes[j++] = cmd->dist_prefix_ & 0x3FF;
       }
     }
+    
     /* Create the block split on the array of distance prefixes. */
-    SplitByteVectorDistance(
-        m, distance_prefixes, j,
-        kSymbolsPerDistanceHistogram, kMaxCommandHistograms,
-        kCommandStrideLength, kDistanceBlockSwitchCost, params,
-        dist_split);
+    if (SEED_DISTANCES) {
+      HistogramDistance* histo;
+      const size_t histo_n = PrepareSeedDistance(
+        m, 64, 512, 100.0,
+        distance_prefixes, j,
+        &histo);
+
+      SplitByteVectorSeededDistance(
+          m, distance_prefixes, j,
+          kDistanceBlockSwitchCost, params,
+          dist_split, histo, histo_n);
+
+      if (BROTLI_IS_OOM(m)) return;
+      BROTLI_FREE(m, histo);
+    } else {
+      SplitByteVectorDistance(
+          m, distance_prefixes, j,
+          kSymbolsPerDistanceHistogram, kMaxCommandHistograms,
+          kCommandStrideLength, kDistanceBlockSwitchCost, params,
+          dist_split);
+    }
+
     if (BROTLI_IS_OOM(m)) return;
     BROTLI_FREE(m, distance_prefixes);
   }
