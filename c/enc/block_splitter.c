@@ -145,7 +145,7 @@ void BrotliSplitBlock(MemoryManager* m,
     if (SEED_LITERALS) {
       HistogramLiteral* histo;
       const size_t histo_n = PrepareSeedLiteral(
-        m, 256, 512, 400.0,
+        m, 256, 512, 500.0,
         literals, literals_count,
         &histo);
 
@@ -181,7 +181,7 @@ void BrotliSplitBlock(MemoryManager* m,
     if (SEED_COMMANDS) {
       HistogramCommand* histo;
       const size_t histo_n = PrepareSeedCommand(
-        m, BROTLI_NUM_COMMAND_SYMBOLS, 1024, 500.0,
+        m, BROTLI_NUM_COMMAND_SYMBOLS, 768, 125.0,
         insert_and_copy_codes, num_commands,
         &histo);
 
@@ -222,7 +222,7 @@ void BrotliSplitBlock(MemoryManager* m,
     if (SEED_DISTANCES) {
       HistogramDistance* histo;
       const size_t histo_n = PrepareSeedDistance(
-        m, 64, 512, 100.0,
+        m, 64, 1792, 25.0,
         distance_prefixes, j,
         &histo);
 
