@@ -52,7 +52,7 @@ typedef struct HasherSearchResult {
   size_t len;
   size_t distance;
   score_t score;
-  int len_code_delta; /* == len_code - len */
+  int len_code_delta; /* == len_code - len (positive) or len - len_code (negative) */
 } HasherSearchResult;
 
 /* kHashMul32 multiplier has these properties:
@@ -137,27 +137,41 @@ static BROTLI_INLINE BROTLI_BOOL TestStaticDictionaryItem(
     const BrotliEncoderDictionary* dictionary, size_t len, size_t word_idx,
     const uint8_t* data, size_t max_length, size_t max_backward,
     size_t max_distance, HasherSearchResult* out) {
-  size_t offset;
-  size_t matchlen;
-  size_t backward;
+  size_t backward = 0;
   score_t score;
-  offset = dictionary->words->offsets_by_length[len] + len * word_idx;
+
   if (len > max_length) {
     return BROTLI_FALSE;
   }
 
-  matchlen =
-      FindMatchLengthWithLimit(data, &dictionary->words->data[offset], len);
-  if (matchlen + dictionary->cutoffTransformsCount <= len || matchlen == 0) {
+  const size_t offset = dictionary->words->offsets_by_length[len] + len * word_idx;
+  const uint8_t* word = &dictionary->words->data[offset];
+
+  size_t matchlen = FindMatchLengthWithLimit(data, word, len);
+  int delta;
+
+  if (matchlen == len && len + 1 < max_length) {
+    int extra = 0;
+
+    if (extra != 0) {
+      matchlen += extra;
+      delta = -extra;
+      goto skip_cut_transform;
+    }
+  } else if (matchlen + dictionary->cutoffTransformsCount <= len || matchlen == 0) {
     return BROTLI_FALSE;
   }
+
   {
     size_t cut = len - matchlen;
     size_t transform_id = (cut << 2) +
         (size_t)((dictionary->cutoffTransforms >> (cut * 6)) & 0x3F);
     backward = max_backward + 1 + word_idx +
         (transform_id << dictionary->words->size_bits_by_length[len]);
+    delta = (int)len - (int)matchlen;
   }
+
+  skip_cut_transform:
   if (backward > max_distance) {
     return BROTLI_FALSE;
   }
@@ -166,7 +180,7 @@ static BROTLI_INLINE BROTLI_BOOL TestStaticDictionaryItem(
     return BROTLI_FALSE;
   }
   out->len = matchlen;
-  out->len_code_delta = (int)len - (int)matchlen;
+  out->len_code_delta = delta;
   out->distance = backward;
   out->score = score;
   return BROTLI_TRUE;

@@ -69,7 +69,7 @@ static void CopyLiteralsToByteArray(const Command* cmds,
       memcpy(literals + pos, data + from_pos, insert_len);
       pos += insert_len;
     }
-    from_pos = (from_pos + insert_len + CommandCopyLen(&cmds[i])) & mask;
+    from_pos = (from_pos + insert_len + CommandCopyOutputLen(&cmds[i])) & mask;
   }
 }
 

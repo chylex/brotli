@@ -590,7 +590,7 @@ static BROTLI_INLINE void BrotliBuildMetaBlockGreedyInternal(
       prev_byte = literal;
       ++pos;
     }
-    pos += CommandCopyLen(&cmd);
+    pos += CommandCopyOutputLen(&cmd);
     if (CommandCopyLen(&cmd)) {
       prev_byte2 = ringbuffer[(pos - 2) & mask];
       prev_byte = ringbuffer[(pos - 1) & mask];

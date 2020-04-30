@@ -1053,7 +1053,7 @@ void BrotliStoreMetaBlock(MemoryManager* m,
         ++pos;
       }
     }
-    pos += CommandCopyLen(&cmd);
+    pos += CommandCopyOutputLen(&cmd);
     if (CommandCopyLen(&cmd)) {
       prev_byte2 = input[(pos - 2) & mask];
       prev_byte = input[(pos - 1) & mask];
@@ -1099,7 +1099,7 @@ static void BuildHistograms(const uint8_t* input,
       HistogramAddLiteral(lit_histo, input[pos & mask]);
       ++pos;
     }
-    pos += CommandCopyLen(&cmd);
+    pos += CommandCopyOutputLen(&cmd);
     if (CommandCopyLen(&cmd) && cmd.cmd_prefix_ >= 128) {
       HistogramAddDistance(dist_histo, cmd.dist_prefix_ & 0x3FF);
     }
@@ -1134,7 +1134,7 @@ static void StoreDataWithHuffmanCodes(const uint8_t* input,
           lit_depth[literal], lit_bits[literal], storage_ix, storage);
       ++pos;
     }
-    pos += CommandCopyLen(&cmd);
+    pos += CommandCopyOutputLen(&cmd);
     if (CommandCopyLen(&cmd) && cmd.cmd_prefix_ >= 128) {
       const size_t dist_code = cmd.dist_prefix_ & 0x3FF;
       const uint32_t distnumextra = cmd.dist_prefix_ >> 10;
@@ -1227,7 +1227,7 @@ void BrotliStoreMetaBlockFast(MemoryManager* m,
         ++pos;
       }
       num_literals += cmd.insert_len_;
-      pos += CommandCopyLen(&cmd);
+      pos += CommandCopyOutputLen(&cmd);
     }
     BrotliBuildAndStoreHuffmanTreeFast(m, histogram, num_literals,
                                        /* max_bits = */ 8,

@@ -596,7 +596,7 @@ void BrotliZopfliCreateCommands(const size_t num_bytes,
       BROTLI_BOOL is_dictionary =
           TO_BROTLI_BOOL(distance > dictionary_start + gap);
       size_t dist_code = ZopfliNodeDistanceCode(next);
-      InitCommand(&commands[i], &params->dist, insert_length,
+      InitCommandHQ(&commands[i], &params->dist, insert_length,
           copy_length, (int)len_code - (int)copy_length, dist_code);
 
       if (!is_dictionary && dist_code > 0) {
