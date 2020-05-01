@@ -199,10 +199,10 @@ static BROTLI_NOINLINE void TestStaticDictionaryItemSuffixes(
     } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "with ", 5)) {
       *transform = 35;
       *extra = 6;
-    } else {
+    }/* else {
       *transform = 1;
       *extra = 1;
-    }
+    }*/
   } else if (next == '.') {
     if (TestStaticDictionaryTransformSuffix(data, max_length, len, " This ", 6)) {
       *transform = 75;
@@ -213,10 +213,10 @@ static BROTLI_NOINLINE void TestStaticDictionaryItemSuffixes(
     } else if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, ' ')) {
       *transform = 31;
       *extra = 2;
-    } else {
+    }/* else {
       *transform = 20;
       *extra = 1;
-    }
+    }*/
   } else if (next == 'e') {
     if (TestStaticDictionaryTransformSuffix(data, max_length, len, "d ", 2)) {
       *transform = 53;
@@ -248,26 +248,26 @@ static BROTLI_NOINLINE void TestStaticDictionaryItemSuffixes(
     if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, ' ')) {
       *transform = 14;
       *extra = 2;
-    } else {
+    }/* else {
       *transform = 76;
       *extra = 1;
-    }
+    }*/
   } else if (next == '"') {
     if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '>')) {
       *transform = 21;
       *extra = 2;
-    } else {
+    }/* else {
       *transform = 19;
       *extra = 1;
-    }
+    }*/
   } else if (next == '\n') {
     if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '\t')) {
       *transform = 50;
       *extra = 2;
-    } else {
+    }/* else {
       *transform = 22;
       *extra = 1;
-    }
+    }*/
   } else if (next == '=') {
     if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '"')) {
       *transform = 70;
@@ -276,7 +276,7 @@ static BROTLI_NOINLINE void TestStaticDictionaryItemSuffixes(
       *transform = 86;
       *extra = 2;
     }
-  } else if (next == ':') {
+  } /*else if (next == ':') {
     *transform = 51;
     *extra = 1;
   } else if (next == '\'') {
@@ -288,7 +288,7 @@ static BROTLI_NOINLINE void TestStaticDictionaryItemSuffixes(
   } else if (next == ']') {
     *transform = 24;
     *extra = 1;
-  } else if (next == 'a') {
+  }*/ else if (next == 'a') {
     if (TestStaticDictionaryTransformSuffix(data, max_length, len, "l ", 2)) {
       *transform = 84;
       *extra = 3;
