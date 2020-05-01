@@ -133,6 +133,179 @@ static BROTLI_INLINE score_t BackwardReferencePenaltyUsingLastDistance(
   return (score_t)39 + ((0x1CA10 >> (distance_short_code & 0xE)) & 0xE);
 }
 
+static BROTLI_INLINE BROTLI_BOOL TestStaticDictionaryTransformSuffixChar(
+    const uint8_t* data, size_t max_length, size_t len,
+    const uint8_t chr) {
+  return len + 2 < max_length && data[len + 1] == chr;
+}
+
+static BROTLI_INLINE BROTLI_BOOL TestStaticDictionaryTransformSuffix(
+    const uint8_t* data, size_t max_length, size_t len,
+    const uint8_t* match, size_t match_len) {
+  return len + 1 + match_len < max_length && FindMatchLengthWithLimit(&data[len + 1], match, match_len) == match_len;
+}
+
+static BROTLI_NOINLINE void TestStaticDictionaryItemSuffixes(
+    const uint8_t* data, const size_t len, size_t max_length,
+    int* transform, int* extra) {
+  const uint8_t next = data[len];
+
+  if (next == ' ') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "a ", 2)) {
+      *transform = 28;
+      *extra = 3;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "and ", 4)) {
+      *transform = 10;
+      *extra = 5;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "as ", 3)) {
+      *transform = 46;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "at ", 3)) {
+      *transform = 60;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "by ", 3)) {
+      *transform = 38;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "for ", 4)) {
+      *transform = 25;
+      *extra = 5;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "from ", 5)) {
+      *transform = 37;
+      *extra = 6;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "in ", 3)) {
+      *transform = 16;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "is ", 3)) {
+      *transform = 47;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "not ", 4)) {
+      *transform = 80;
+      *extra = 5;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "of ", 3)) {
+      *transform = 8;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "on ", 3)) {
+      *transform = 45;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "that ", 5)) {
+      *transform = 29;
+      *extra = 6;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "the ", 4)) {
+      *transform = 5;
+      *extra = 5;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "to ", 3)) {
+      *transform = 17;
+      *extra = 4;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "with ", 5)) {
+      *transform = 35;
+      *extra = 6;
+    } else {
+      *transform = 1;
+      *extra = 1;
+    }
+  } else if (next == '.') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, " This ", 6)) {
+      *transform = 75;
+      *extra = 7;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, " The ", 5)) {
+      *transform = 43;
+      *extra = 6;
+    } else if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, ' ')) {
+      *transform = 31;
+      *extra = 2;
+    } else {
+      *transform = 20;
+      *extra = 1;
+    }
+  } else if (next == 'e') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "d ", 2)) {
+      *transform = 53;
+      *extra = 3;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "r ", 2)) {
+      *transform = 82;
+      *extra = 3;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "st ", 3)) {
+      *transform = 95;
+      *extra = 4;
+    }
+  } else if (next == 'i') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "ive ", 4)) {
+      *transform = 92;
+      *extra = 5;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "ize ", 4)) {
+      *transform = 100;
+      *extra = 5;
+    }
+  } else if (next == 'l') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "y ", 2)) {
+      *transform = 61;
+      *extra = 3;
+    } else if (TestStaticDictionaryTransformSuffix(data, max_length, len, "ess ", 4)) {
+      *transform = 93;
+      *extra = 5;
+    }
+  } else if (next == ',') {
+    if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, ' ')) {
+      *transform = 14;
+      *extra = 2;
+    } else {
+      *transform = 76;
+      *extra = 1;
+    }
+  } else if (next == '"') {
+    if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '>')) {
+      *transform = 21;
+      *extra = 2;
+    } else {
+      *transform = 19;
+      *extra = 1;
+    }
+  } else if (next == '\n') {
+    if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '\t')) {
+      *transform = 50;
+      *extra = 2;
+    } else {
+      *transform = 22;
+      *extra = 1;
+    }
+  } else if (next == '=') {
+    if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '"')) {
+      *transform = 70;
+      *extra = 2;
+    } else if (TestStaticDictionaryTransformSuffixChar(data, max_length, len, '\'')) {
+      *transform = 86;
+      *extra = 2;
+    }
+  } else if (next == ':') {
+    *transform = 51;
+    *extra = 1;
+  } else if (next == '\'') {
+    *transform = 36;
+    *extra = 1;
+  } else if (next == '(') {
+    *transform = 57;
+    *extra = 1;
+  } else if (next == ']') {
+    *transform = 24;
+    *extra = 1;
+  } else if (next == 'a') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "l ", 2)) {
+      *transform = 84;
+      *extra = 3;
+    }
+  } else if (next == 'f') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "ul ", 3)) {
+      *transform = 90;
+      *extra = 4;
+    }
+  } else if (next == 'o') {
+    if (TestStaticDictionaryTransformSuffix(data, max_length, len, "ous ", 3)) {
+      *transform = 106;
+      *extra = 4;
+    }
+  }
+}
+
 static BROTLI_INLINE BROTLI_BOOL TestStaticDictionaryItem(
     const BrotliEncoderDictionary* dictionary, size_t len, size_t word_idx,
     const uint8_t* data, size_t max_length, size_t max_backward,
@@ -151,11 +324,15 @@ static BROTLI_INLINE BROTLI_BOOL TestStaticDictionaryItem(
   int delta;
 
   if (matchlen == len && len + 1 < max_length) {
+    int transform;
     int extra = 0;
+
+    TestStaticDictionaryItemSuffixes(data, len, max_length, &transform, &extra);
 
     if (extra != 0) {
       matchlen += extra;
       delta = -extra;
+      backward = max_backward + 1 + word_idx + (transform << dictionary->words->size_bits_by_length[len]);
       goto skip_cut_transform;
     }
   } else if (matchlen + dictionary->cutoffTransformsCount <= len || matchlen == 0) {
