@@ -683,11 +683,11 @@ size_t BrotliZopfliComputeShortestPath(MemoryManager* m, size_t num_bytes,
     const size_t dictionary_start = BROTLI_MIN(size_t,
         pos + stream_offset, max_backward_limit);
     size_t skip;
-    size_t num_matches;
-    num_matches = FindAllMatchesH10(&hasher->privat._H10,
+    size_t num_matches = 0;
+    /*num_matches = FindAllMatchesH10(&hasher->privat._H10,
         &params->dictionary,
         ringbuffer, ringbuffer_mask, pos, num_bytes - i, max_distance,
-        dictionary_start + gap, params, &matches[lz_matches_offset]);
+        dictionary_start + gap, params, &matches[lz_matches_offset]);*/
     if (num_matches > 0 &&
         BackwardMatchLength(&matches[num_matches - 1]) > max_zopfli_len) {
       matches[0] = matches[num_matches - 1];
@@ -769,18 +769,18 @@ void BrotliCreateHqZopfliBackwardReferences(MemoryManager* m, size_t num_bytes,
     size_t dictionary_start = BROTLI_MIN(size_t,
         pos + stream_offset, max_backward_limit);
     size_t max_length = num_bytes - i;
-    size_t num_found_matches;
+    size_t num_found_matches = 0;
     size_t cur_match_end;
     size_t j;
     /* Ensure that we have enough free slots. */
     BROTLI_ENSURE_CAPACITY(m, BackwardMatch, matches, matches_size,
         cur_match_pos + MAX_NUM_MATCHES_H10 + shadow_matches);
     if (BROTLI_IS_OOM(m)) return;
-    num_found_matches = FindAllMatchesH10(&hasher->privat._H10,
+    /*num_found_matches = FindAllMatchesH10(&hasher->privat._H10,
         &params->dictionary,
         ringbuffer, ringbuffer_mask, pos, max_length,
         max_distance, dictionary_start + gap, params,
-        &matches[cur_match_pos + shadow_matches]);
+        &matches[cur_match_pos + shadow_matches]);*/
     cur_match_end = cur_match_pos + num_found_matches;
     for (j = cur_match_pos; j + 1 < cur_match_end; ++j) {
       BROTLI_DCHECK(BackwardMatchLength(&matches[j]) <=

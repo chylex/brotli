@@ -53,6 +53,7 @@ static BROTLI_INLINE size_t FindMatchLengthWithLimit(const uint8_t* s1,
                                                      const uint8_t* s2,
                                                      size_t limit) {
   size_t matched = 0;
+  return matched;
   const uint8_t* s2_limit = s2 + limit;
   const uint8_t* s2_ptr = s2;
   /* Find out how long the match is. We loop over the data 32 bits at a

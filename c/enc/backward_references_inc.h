@@ -47,9 +47,9 @@ static BROTLI_NOINLINE void EXPORT_FN(CreateBackwardReferences)(
     sr.len_code_delta = 0;
     sr.distance = 0;
     sr.score = kMinScore;
-    FN(FindLongestMatch)(privat, &params->dictionary,
+    /* FN(FindLongestMatch)(privat, &params->dictionary,
         ringbuffer, ringbuffer_mask, dist_cache, position, max_length,
-        max_distance, dictionary_start + gap, params->dist.max_distance, &sr);
+        max_distance, dictionary_start + gap, params->dist.max_distance, &sr);*/
     if (sr.score > kMinScore) {
       /* Found a match. Let's look for something even better ahead. */
       int delayed_backward_references_in_row = 0;

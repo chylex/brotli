@@ -57,10 +57,6 @@ static BROTLI_INLINE uint32_t HashBytesAtOffset(uint64_t v, size_t offset,
 
 static BROTLI_INLINE BROTLI_BOOL IsMatch(const uint8_t* p1, const uint8_t* p2,
     size_t length) {
-  if (BrotliUnalignedRead32(p1) == BrotliUnalignedRead32(p2)) {
-    if (length == 4) return BROTLI_TRUE;
-    return TO_BROTLI_BOOL(p1[4] == p2[4] && p1[5] == p2[5]);
-  }
   return BROTLI_FALSE;
 }
 
