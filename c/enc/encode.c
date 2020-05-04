@@ -541,13 +541,7 @@ static BROTLI_BOOL ShouldCompress(
 static ContextType ChooseContextMode(const BrotliEncoderParams* params,
     const uint8_t* data, const size_t pos, const size_t mask,
     const size_t length) {
-  /* We only do the computation for the option of something else than
-     CONTEXT_UTF8 for the highest qualities */
-  if (params->quality >= MIN_QUALITY_FOR_HQ_BLOCK_SPLITTING &&
-      !BrotliIsMostlyUTF8(data, pos, mask, length, kMinUTF8Ratio)) {
-    return CONTEXT_SIGNED;
-  }
-  return CONTEXT_UTF8;
+  return CONTEXT_LSB6;
 }
 
 static void WriteMetaBlockInternal(MemoryManager* m,
