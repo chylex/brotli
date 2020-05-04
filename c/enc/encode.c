@@ -541,7 +541,7 @@ static BROTLI_BOOL ShouldCompress(
 static ContextType ChooseContextMode(const BrotliEncoderParams* params,
     const uint8_t* data, const size_t pos, const size_t mask,
     const size_t length) {
-  return CONTEXT_MSB6;
+  return CONTEXT_UTF8;
 }
 
 static void WriteMetaBlockInternal(MemoryManager* m,
