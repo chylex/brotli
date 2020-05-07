@@ -48,6 +48,13 @@ BROTLI_INTERNAL void BrotliStoreMetaBlock(MemoryManager* m,
     const Command* commands, size_t n_commands, const MetaBlockSplit* mb,
     size_t* storage_ix, uint8_t* storage);
 
+BROTLI_INTERNAL void BrotliStoreMetaBlockMultiLiteralContextMode(MemoryManager* m,
+    const uint8_t* input, size_t start_pos, size_t length, size_t mask,
+    uint8_t prev_byte, uint8_t prev_byte2, BROTLI_BOOL is_last,
+    const BrotliEncoderParams* params,
+    const Command* commands, size_t n_commands, const MetaBlockSplit* mb,
+    size_t* storage_ix, uint8_t* storage);
+
 /* Stores the meta-block without doing any block splitting, just collects
    one histogram per block category and uses that for entropy coding.
    REQUIRES: length > 0

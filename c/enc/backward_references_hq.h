@@ -26,16 +26,16 @@ extern "C" {
 BROTLI_INTERNAL void BrotliCreateZopfliBackwardReferences(MemoryManager* m,
     size_t num_bytes,
     size_t position, const uint8_t* ringbuffer, size_t ringbuffer_mask,
-    ContextLut literal_context_lut, const BrotliEncoderParams* params,
-    Hasher* hasher, int* dist_cache, size_t* last_insert_len,
-    Command* commands, size_t* num_commands, size_t* num_literals);
+    const BrotliEncoderParams* params, Hasher* hasher, int* dist_cache,
+    size_t* last_insert_len, Command* commands, size_t* num_commands,
+    size_t* num_literals);
 
 BROTLI_INTERNAL void BrotliCreateHqZopfliBackwardReferences(MemoryManager* m,
     size_t num_bytes,
     size_t position, const uint8_t* ringbuffer, size_t ringbuffer_mask,
-    ContextLut literal_context_lut, const BrotliEncoderParams* params,
-    Hasher* hasher, int* dist_cache, size_t* last_insert_len,
-    Command* commands, size_t* num_commands, size_t* num_literals);
+    const BrotliEncoderParams* params, Hasher* hasher, int* dist_cache,
+    size_t* last_insert_len, Command* commands, size_t* num_commands,
+    size_t* num_literals);
 
 typedef struct ZopfliNode {
   /* Best length to get up to this byte (not including this byte itself)
@@ -80,8 +80,8 @@ BROTLI_INTERNAL void BrotliInitZopfliNodes(ZopfliNode* array, size_t length);
 BROTLI_INTERNAL size_t BrotliZopfliComputeShortestPath(
     MemoryManager* m, size_t num_bytes,
     size_t position, const uint8_t* ringbuffer, size_t ringbuffer_mask,
-    ContextLut literal_context_lut, const BrotliEncoderParams* params,
-    const int* dist_cache, Hasher* hasher, ZopfliNode* nodes);
+    const BrotliEncoderParams* params, const int* dist_cache,
+    Hasher* hasher, ZopfliNode* nodes);
 
 BROTLI_INTERNAL void BrotliZopfliCreateCommands(
     const size_t num_bytes, const size_t block_start, const ZopfliNode* nodes,

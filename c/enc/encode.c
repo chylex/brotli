@@ -570,7 +570,6 @@ static void WriteMetaBlockInternal(MemoryManager* m,
   const uint32_t wrapped_last_flush_pos = WrapPosition(last_flush_pos);
   uint16_t last_bytes;
   uint8_t last_bytes_bits;
-  ContextLut literal_context_lut = BROTLI_CONTEXT_LUT(literal_context_mode);
   BrotliEncoderParams block_params = *params;
 
   if (bytes == 0) {
@@ -619,14 +618,13 @@ static void WriteMetaBlockInternal(MemoryManager* m,
             &literal_context_map);
       }
       BrotliBuildMetaBlockGreedy(m, data, wrapped_last_flush_pos, mask,
-          prev_byte, prev_byte2, literal_context_lut, num_literal_contexts,
+          prev_byte, prev_byte2, BROTLI_CONTEXT_LUT(literal_context_mode), num_literal_contexts,
           literal_context_map, commands, num_commands, &mb);
       if (BROTLI_IS_OOM(m)) return;
     } else {
       BrotliBuildMetaBlock(m, data, wrapped_last_flush_pos, mask, &block_params,
                            prev_byte, prev_byte2,
                            commands, num_commands,
-                           literal_context_mode,
                            &mb);
       if (BROTLI_IS_OOM(m)) return;
     }
@@ -636,14 +634,24 @@ static void WriteMetaBlockInternal(MemoryManager* m,
          for "Large Window Brotli" (32-bit). */
       BrotliOptimizeHistograms(block_params.dist.alphabet_size_limit, &mb);
     }
-    BrotliStoreMetaBlock(m, data, wrapped_last_flush_pos, bytes, mask,
-                         prev_byte, prev_byte2,
-                         is_last,
-                         &block_params,
-                         literal_context_mode,
-                         commands, num_commands,
-                         &mb,
-                         storage_ix, storage);
+    if (params->quality >= MIN_QUALITY_FOR_HQ_BLOCK_SPLITTING) {
+      BrotliStoreMetaBlockMultiLiteralContextMode(m, data, wrapped_last_flush_pos, bytes, mask,
+                                                  prev_byte, prev_byte2,
+                                                  is_last,
+                                                  &block_params,
+                                                  commands, num_commands,
+                                                  &mb,
+                                                  storage_ix, storage);
+    } else {
+      BrotliStoreMetaBlock(m, data, wrapped_last_flush_pos, bytes, mask,
+                           prev_byte, prev_byte2,
+                           is_last,
+                           &block_params,
+                           literal_context_mode,
+                           commands, num_commands,
+                           &mb,
+                           storage_ix, storage);
+    }
     if (BROTLI_IS_OOM(m)) return;
     DestroyMetaBlockSplit(m, &mb);
   }
@@ -967,7 +975,6 @@ static BROTLI_BOOL EncodeData(
   uint32_t mask;
   MemoryManager* m = &s->memory_manager_;
   ContextType literal_context_mode;
-  ContextLut literal_context_lut;
 
   data = s->ringbuffer_.buffer_;
   mask = s->ringbuffer_.mask_;
@@ -1058,10 +1065,13 @@ static BROTLI_BOOL EncodeData(
   InitOrStitchToPreviousBlock(m, &s->hasher_, data, mask, &s->params,
       wrapped_last_processed_pos, bytes, is_last);
 
-  literal_context_mode = ChooseContextMode(
-      &s->params, data, WrapPosition(s->last_flush_pos_),
-      mask, (size_t)(s->input_pos_ - s->last_flush_pos_));
-  literal_context_lut = BROTLI_CONTEXT_LUT(literal_context_mode);
+  if (s->params.quality >= MIN_QUALITY_FOR_HQ_BLOCK_SPLITTING) {
+    literal_context_mode = CONTEXT_LSB6; // ignored on all paths
+  } else {
+    literal_context_mode = ChooseContextMode(
+        &s->params, data, WrapPosition(s->last_flush_pos_),
+        mask, (size_t)(s->input_pos_ - s->last_flush_pos_));
+  }
 
   if (BROTLI_IS_OOM(m)) return BROTLI_FALSE;
 
@@ -1072,23 +1082,21 @@ static BROTLI_BOOL EncodeData(
   if (s->params.quality == ZOPFLIFICATION_QUALITY) {
     BROTLI_DCHECK(s->params.hasher.type == 10);
     BrotliCreateZopfliBackwardReferences(m, bytes, wrapped_last_processed_pos,
-        data, mask, literal_context_lut, &s->params,
-        &s->hasher_, s->dist_cache_,
+        data, mask, &s->params, &s->hasher_, s->dist_cache_,
         &s->last_insert_len_, &s->commands_[s->num_commands_],
         &s->num_commands_, &s->num_literals_);
     if (BROTLI_IS_OOM(m)) return BROTLI_FALSE;
   } else if (s->params.quality == HQ_ZOPFLIFICATION_QUALITY) {
     BROTLI_DCHECK(s->params.hasher.type == 10);
     BrotliCreateHqZopfliBackwardReferences(m, bytes, wrapped_last_processed_pos,
-        data, mask, literal_context_lut, &s->params,
-        &s->hasher_, s->dist_cache_,
+        data, mask, &s->params, &s->hasher_, s->dist_cache_,
         &s->last_insert_len_, &s->commands_[s->num_commands_],
         &s->num_commands_, &s->num_literals_);
     if (BROTLI_IS_OOM(m)) return BROTLI_FALSE;
   } else {
     BrotliCreateBackwardReferences(bytes, wrapped_last_processed_pos,
-        data, mask, literal_context_lut, &s->params,
-        &s->hasher_, s->dist_cache_,
+        data, mask, BROTLI_CONTEXT_LUT(literal_context_mode),
+        &s->params, &s->hasher_, s->dist_cache_,
         &s->last_insert_len_, &s->commands_[s->num_commands_],
         &s->num_commands_, &s->num_literals_);
   }
@@ -1267,10 +1275,6 @@ static BROTLI_BOOL BrotliCompressBufferQuality10(
     uint8_t* storage;
     size_t storage_ix;
 
-    ContextType literal_context_mode = ChooseContextMode(&params,
-        input_buffer, metablock_start, mask, metablock_end - metablock_start);
-    ContextLut literal_context_lut = BROTLI_CONTEXT_LUT(literal_context_mode);
-
     size_t block_start;
     for (block_start = metablock_start; block_start < metablock_end; ) {
       size_t block_size =
@@ -1283,8 +1287,7 @@ static BROTLI_BOOL BrotliCompressBufferQuality10(
       StitchToPreviousBlockH10(&hasher.privat._H10, block_size, block_start,
                                input_buffer, mask);
       path_size = BrotliZopfliComputeShortestPath(m, block_size, block_start,
-          input_buffer, mask, literal_context_lut, &params, dist_cache, &hasher,
-          nodes);
+          input_buffer, mask, &params, dist_cache, &hasher, nodes);
       if (BROTLI_IS_OOM(m)) goto oom;
       /* We allocate a command buffer in the first iteration of this loop that
          will be likely big enough for the whole metablock, so that for most
@@ -1355,7 +1358,6 @@ static BROTLI_BOOL BrotliCompressBufferQuality10(
                            &block_params,
                            prev_byte, prev_byte2,
                            commands, num_commands,
-                           literal_context_mode,
                            &mb);
       if (BROTLI_IS_OOM(m)) goto oom;
       {
@@ -1368,14 +1370,13 @@ static BROTLI_BOOL BrotliCompressBufferQuality10(
       if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(storage)) goto oom;
       storage[0] = (uint8_t)last_bytes;
       storage[1] = (uint8_t)(last_bytes >> 8);
-      BrotliStoreMetaBlock(m, input_buffer, metablock_start, metablock_size,
-                           mask, prev_byte, prev_byte2,
-                           is_last,
-                           &block_params,
-                           literal_context_mode,
-                           commands, num_commands,
-                           &mb,
-                           &storage_ix, storage);
+      BrotliStoreMetaBlockMultiLiteralContextMode(m, input_buffer, metablock_start, metablock_size,
+                                                  mask, prev_byte, prev_byte2,
+                                                  is_last,
+                                                  &block_params,
+                                                  commands, num_commands,
+                                                  &mb,
+                                                  &storage_ix, storage);
       if (BROTLI_IS_OOM(m)) goto oom;
       if (metablock_size + 4 < (storage_ix >> 3)) {
         /* Restore the distance cache and last byte. */

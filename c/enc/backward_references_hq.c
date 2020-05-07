@@ -656,8 +656,8 @@ static size_t ZopfliIterate(size_t num_bytes, size_t position,
 /* REQUIRES: nodes != NULL and len(nodes) >= num_bytes + 1 */
 size_t BrotliZopfliComputeShortestPath(MemoryManager* m, size_t num_bytes,
     size_t position, const uint8_t* ringbuffer, size_t ringbuffer_mask,
-    ContextLut literal_context_lut, const BrotliEncoderParams* params,
-    const int* dist_cache, Hasher* hasher, ZopfliNode* nodes) {
+    const BrotliEncoderParams* params, const int* dist_cache,
+    Hasher* hasher, ZopfliNode* nodes) {
   const size_t stream_offset = params->stream_offset;
   const size_t max_backward_limit = BROTLI_MAX_BACKWARD_LIMIT(params->lgwin);
   const size_t max_zopfli_len = MaxZopfliLen(params);
@@ -669,7 +669,6 @@ size_t BrotliZopfliComputeShortestPath(MemoryManager* m, size_t num_bytes,
   size_t i;
   size_t gap = 0;
   size_t lz_matches_offset = 0;
-  BROTLI_UNUSED(literal_context_lut);
   nodes[0].length = 0;
   nodes[0].u.cost = 0;
   InitZopfliCostModel(m, &model, &params->dist, num_bytes);
@@ -721,14 +720,14 @@ size_t BrotliZopfliComputeShortestPath(MemoryManager* m, size_t num_bytes,
 
 void BrotliCreateZopfliBackwardReferences(MemoryManager* m, size_t num_bytes,
     size_t position, const uint8_t* ringbuffer, size_t ringbuffer_mask,
-    ContextLut literal_context_lut, const BrotliEncoderParams* params,
-    Hasher* hasher, int* dist_cache, size_t* last_insert_len,
-    Command* commands, size_t* num_commands, size_t* num_literals) {
+    const BrotliEncoderParams* params, Hasher* hasher, int* dist_cache,
+    size_t* last_insert_len, Command* commands, size_t* num_commands,
+    size_t* num_literals) {
   ZopfliNode* nodes = BROTLI_ALLOC(m, ZopfliNode, num_bytes + 1);
   if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(nodes)) return;
   BrotliInitZopfliNodes(nodes, num_bytes + 1);
   *num_commands += BrotliZopfliComputeShortestPath(m, num_bytes,
-      position, ringbuffer, ringbuffer_mask, literal_context_lut, params,
+      position, ringbuffer, ringbuffer_mask, params,
       dist_cache, hasher, nodes);
   if (BROTLI_IS_OOM(m)) return;
   BrotliZopfliCreateCommands(num_bytes, position, nodes, dist_cache,
@@ -738,9 +737,9 @@ void BrotliCreateZopfliBackwardReferences(MemoryManager* m, size_t num_bytes,
 
 void BrotliCreateHqZopfliBackwardReferences(MemoryManager* m, size_t num_bytes,
     size_t position, const uint8_t* ringbuffer, size_t ringbuffer_mask,
-    ContextLut literal_context_lut, const BrotliEncoderParams* params,
-    Hasher* hasher, int* dist_cache, size_t* last_insert_len,
-    Command* commands, size_t* num_commands, size_t* num_literals) {
+    const BrotliEncoderParams* params, Hasher* hasher, int* dist_cache,
+    size_t* last_insert_len, Command* commands, size_t* num_commands,
+    size_t* num_literals) {
   const size_t stream_offset = params->stream_offset;
   const size_t max_backward_limit = BROTLI_MAX_BACKWARD_LIMIT(params->lgwin);
   uint32_t* num_matches = BROTLI_ALLOC(m, uint32_t, num_bytes);
@@ -758,7 +757,6 @@ void BrotliCreateHqZopfliBackwardReferences(MemoryManager* m, size_t num_bytes,
   BackwardMatch* matches = BROTLI_ALLOC(m, BackwardMatch, matches_size);
   size_t gap = 0;
   size_t shadow_matches = 0;
-  BROTLI_UNUSED(literal_context_lut);
   if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(num_matches) ||
       BROTLI_IS_NULL(matches)) {
     return;

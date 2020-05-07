@@ -27,6 +27,7 @@ typedef struct MetaBlockSplit {
   BlockSplit literal_split;
   BlockSplit command_split;
   BlockSplit distance_split;
+  ContextType literal_context_modes[BROTLI_MAX_NUMBER_OF_BLOCK_TYPES];
   uint32_t* literal_context_map;
   size_t literal_context_map_size;
   uint32_t* distance_context_map;
@@ -43,6 +44,7 @@ static BROTLI_INLINE void InitMetaBlockSplit(MetaBlockSplit* mb) {
   BrotliInitBlockSplit(&mb->literal_split);
   BrotliInitBlockSplit(&mb->command_split);
   BrotliInitBlockSplit(&mb->distance_split);
+  memset(&mb->literal_context_modes[0], CONTEXT_LSB6, sizeof(ContextType) * BROTLI_MAX_NUMBER_OF_BLOCK_TYPES);
   mb->literal_context_map = 0;
   mb->literal_context_map_size = 0;
   mb->distance_context_map = 0;
@@ -80,7 +82,6 @@ BROTLI_INTERNAL void BrotliBuildMetaBlock(MemoryManager* m,
                                           uint8_t prev_byte2,
                                           Command* cmds,
                                           size_t num_commands,
-                                          ContextType literal_context_mode,
                                           MetaBlockSplit* mb);
 
 /* Uses a fast greedy block splitter that tries to merge current block with the

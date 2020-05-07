@@ -20,6 +20,7 @@
 #include "./histogram.h"
 #include "./memory.h"
 #include "./quality.h"
+#include "./utf8_util.h"
 
 #if defined(__cplusplus) || defined(c_plusplus)
 extern "C" {
@@ -123,6 +124,96 @@ static BROTLI_BOOL ComputeDistanceCost(const Command* cmds,
   return BROTLI_TRUE;
 }
 
+static BROTLI_INLINE size_t CountDataLength(Command* cmds,
+                                            size_t num_commands) {
+  size_t length = 0;
+
+  for (size_t i = 0; i < num_commands; ++i) {
+    length += cmds[i].insert_len_;
+    length += CommandCopyLen(&cmds[i]);
+  }
+
+  return length;
+}
+
+static void DetermineMultiLiteralContextModes(MemoryManager* m,
+                                              MetaBlockSplit* mb,
+                                              Command* cmds,
+                                              size_t num_commands,
+                                              const uint8_t* ringbuffer,
+                                              const size_t start_pos,
+                                              const size_t mask) {
+  const BlockSplit split = mb->literal_split;
+  const size_t data_length = CountDataLength(cmds, num_commands);
+  const size_t data_length_bit_set = (data_length + 7) / 8;
+
+  uint8_t* pos_is_utf8 = BROTLI_ALLOC(m, uint8_t, data_length_bit_set);
+  size_t* count_total = BROTLI_ALLOC(m, size_t, split.num_types);
+  size_t* count_utf8 = BROTLI_ALLOC(m, size_t, split.num_types);
+
+  memset(pos_is_utf8, 0, sizeof(uint8_t) * data_length_bit_set);
+  memset(count_total, 0, sizeof(size_t) * split.num_types);
+  memset(count_utf8, 0, sizeof(size_t) * split.num_types);
+
+  for (size_t i = 0; i < data_length;) {
+    int symbol;
+    const size_t buffer_ix = (start_pos + i) & mask;
+    const size_t bytes_read = BrotliParseAsUTF8(&symbol, &ringbuffer[buffer_ix], data_length - i);
+
+    if (symbol < 0x110000) {
+      for (size_t offset = 0; offset < bytes_read; ++offset) {
+        const size_t array_index = (i + offset) >> 3;
+        const size_t bit_index = (i + offset) & 7;
+        pos_is_utf8[array_index] |= 1 << bit_index;
+      }
+    }
+
+    i += bytes_read;
+  }
+
+  size_t block = 0;
+  uint8_t type = 0;
+  uint32_t length = split.lengths[0];
+
+  for (size_t i = 0, offset = 0; i < num_commands; ++i) {
+    Command cmd = cmds[i];
+
+    for (size_t l = cmd.insert_len_; l != 0; --l) {
+      if (length == 0) {
+        ++block;
+        type = split.types[block];
+        length = split.lengths[block];
+      }
+
+      ++count_total[type];
+
+      const size_t array_index = offset >> 3;
+      const size_t bit_index = offset & 7;
+
+      if ((pos_is_utf8[array_index] & (1 << bit_index)) != 0) {
+        ++count_utf8[type];
+      }
+
+      --length;
+      ++offset;
+    }
+
+    offset += CommandCopyLen(&cmd);
+  }
+
+  for (size_t i = 0; i < split.num_types; ++i) {
+    if (count_utf8[i] / (double)count_total[i] > kMinUTF8Ratio) {
+      mb->literal_context_modes[i] = CONTEXT_UTF8;
+    } else {
+      mb->literal_context_modes[i] = CONTEXT_SIGNED;
+    }
+  }
+
+  BROTLI_FREE(m, pos_is_utf8);
+  BROTLI_FREE(m, count_total);
+  BROTLI_FREE(m, count_utf8);
+}
+
 void BrotliBuildMetaBlock(MemoryManager* m,
                           const uint8_t* ringbuffer,
                           const size_t pos,
@@ -132,13 +223,11 @@ void BrotliBuildMetaBlock(MemoryManager* m,
                           uint8_t prev_byte2,
                           Command* cmds,
                           size_t num_commands,
-                          ContextType literal_context_mode,
                           MetaBlockSplit* mb) {
   /* Histogram ids need to fit in one byte. */
   static const size_t kMaxNumberOfHistograms = 256;
   HistogramDistance* distance_histograms;
   HistogramLiteral* literal_histograms;
-  ContextType* literal_context_modes = NULL;
   size_t literal_histograms_size;
   size_t distance_histograms_size;
   size_t i;
@@ -194,11 +283,9 @@ void BrotliBuildMetaBlock(MemoryManager* m,
 
   if (!params->disable_literal_context_modeling) {
     literal_context_multiplier = 1 << BROTLI_LITERAL_CONTEXT_BITS;
-    literal_context_modes =
-        BROTLI_ALLOC(m, ContextType, mb->literal_split.num_types);
-    if (BROTLI_IS_OOM(m) || BROTLI_IS_NULL(literal_context_modes)) return;
-    for (i = 0; i < mb->literal_split.num_types; ++i) {
-      literal_context_modes[i] = literal_context_mode;
+
+    if (mb->literal_split.num_blocks > 0) {
+      DetermineMultiLiteralContextModes(m, mb, cmds, num_commands, ringbuffer, pos, mask);
     }
   }
 
@@ -225,9 +312,8 @@ void BrotliBuildMetaBlock(MemoryManager* m,
 
   BrotliBuildHistogramsWithContext(cmds, num_commands,
       &mb->literal_split, &mb->command_split, &mb->distance_split,
-      ringbuffer, pos, mask, prev_byte, prev_byte2, literal_context_modes,
+      ringbuffer, pos, mask, prev_byte, prev_byte2, mb->literal_context_modes,
       literal_histograms, mb->command_histograms, distance_histograms);
-  BROTLI_FREE(m, literal_context_modes);
 
   BROTLI_DCHECK(mb->literal_context_map == 0);
   mb->literal_context_map_size =
