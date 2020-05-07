@@ -93,7 +93,7 @@ BROTLI_BOOL BrotliIsMostlyBase64(
 
     if (bytes_read == 1) {
       // 43 (plus), 47 (slash), 48--57 (digits), 61 (equals), 65--90 (upper case letters), and 97--122 (lower case letters)
-      if ((symbol >= 97 && symbol <= 122) || (symbol >= 65 && symbol <= 90) || (symbol >= 47 && symbol <= 57) || symbol == 43 || symbol == 61) {
+      if (symbol >= 43 && symbol <= 122) {
         size_base64++;
       }
     }
