@@ -86,16 +86,12 @@ BROTLI_BOOL BrotliIsMostlyBase64(
   size_t size_base64 = 0;
   size_t i = 0;
   while (i < length) {
-    int symbol;
-    size_t bytes_read =
-        BrotliParseAsUTF8(&symbol, &data[(pos + i) & mask], length - i);
-    i += bytes_read;
+    int symbol = data[(pos + i) & mask];
+    i += 1;
 
-    if (bytes_read == 1) {
-      // 43 (plus), 47 (slash), 48--57 (digits), 61 (equals), 65--90 (upper case letters), and 97--122 (lower case letters)
-      if (symbol >= 43 && symbol <= 122) {
-        size_base64++;
-      }
+    // 43 (plus), 47 (slash), 48--57 (digits), 61 (equals), 65--90 (upper case letters), and 97--122 (lower case letters)
+    if ((symbol >= 97 && symbol <= 122) || (symbol >= 65 && symbol <= 90) || (symbol >= 47 && symbol <= 57) || symbol == 43 || symbol == 61) {
+      size_base64++;
     }
   }
   return TO_BROTLI_BOOL(size_base64 > min_fraction * (double)length);

@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 static const double kMinUTF8Ratio = 0.75;
-static const double kMinBase64Ratio = 0.985;
+static const double kMinBase64Ratio = 0.95;
 
 /* Returns 1 if at least min_fraction of the bytes between pos and
    pos + length in the (data, mask) ring-buffer is UTF8-encoded, otherwise
