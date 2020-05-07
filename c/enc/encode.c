@@ -543,9 +543,12 @@ static ContextType ChooseContextMode(const BrotliEncoderParams* params,
     const size_t length) {
   /* We only do the computation for the option of something else than
      CONTEXT_UTF8 for the highest qualities */
-  if (params->quality >= MIN_QUALITY_FOR_HQ_BLOCK_SPLITTING &&
-      !BrotliIsMostlyUTF8(data, pos, mask, length, kMinUTF8Ratio)) {
-    return CONTEXT_SIGNED;
+  if (params->quality >= MIN_QUALITY_FOR_HQ_BLOCK_SPLITTING) {
+    if (!BrotliIsMostlyUTF8(data, pos, mask, length, kMinUTF8Ratio)) {
+      return CONTEXT_SIGNED;
+    } else if (BrotliIsMostlyBase64(data, pos, mask, length, kMinBase64Ratio)) {
+      return CONTEXT_LSB6;
+    }
   }
   return CONTEXT_UTF8;
 }

@@ -17,11 +17,16 @@ extern "C" {
 #endif
 
 static const double kMinUTF8Ratio = 0.75;
+static const double kMinBase64Ratio = 0.95;
 
 /* Returns 1 if at least min_fraction of the bytes between pos and
    pos + length in the (data, mask) ring-buffer is UTF8-encoded, otherwise
    returns 0. */
 BROTLI_INTERNAL BROTLI_BOOL BrotliIsMostlyUTF8(
+    const uint8_t* data, const size_t pos, const size_t mask,
+    const size_t length, const double min_fraction);
+
+BROTLI_INTERNAL BROTLI_BOOL BrotliIsMostlyBase64(
     const uint8_t* data, const size_t pos, const size_t mask,
     const size_t length, const double min_fraction);
 
