@@ -17,6 +17,7 @@ extern "C" {
 #endif
 
 static const double kMinUTF8Ratio = 0.75;
+static const double kMinUTF8RatioPerBlockType = 0.991;
 
 BROTLI_INTERNAL size_t BrotliParseAsUTF8(
     int* symbol, const uint8_t* input, size_t size);

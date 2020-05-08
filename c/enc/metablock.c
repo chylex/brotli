@@ -202,7 +202,7 @@ static void DetermineMultiLiteralContextModes(MemoryManager* m,
   }
 
   for (size_t i = 0; i < split.num_types; ++i) {
-    if (count_utf8[i] / (double)count_total[i] > kMinUTF8Ratio) {
+    if (count_utf8[i] / (double)count_total[i] > kMinUTF8RatioPerBlockType) {
       mb->literal_context_modes[i] = CONTEXT_UTF8;
     } else {
       mb->literal_context_modes[i] = CONTEXT_SIGNED;
