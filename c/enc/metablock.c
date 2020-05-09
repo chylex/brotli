@@ -150,10 +150,12 @@ static void DetermineMultiLiteralContextModes(MemoryManager* m,
   uint8_t* pos_is_utf8 = BROTLI_ALLOC(m, uint8_t, data_length_bit_set);
   size_t* count_total = BROTLI_ALLOC(m, size_t, split.num_types);
   size_t* count_utf8 = BROTLI_ALLOC(m, size_t, split.num_types);
+  size_t* count_base64 = BROTLI_ALLOC(m, size_t, split.num_types);
 
   memset(pos_is_utf8, 0, sizeof(uint8_t) * data_length_bit_set);
   memset(count_total, 0, sizeof(size_t) * split.num_types);
   memset(count_utf8, 0, sizeof(size_t) * split.num_types);
+  memset(count_base64, 0, sizeof(size_t) * split.num_types);
 
   for (size_t i = 0; i < data_length;) {
     int symbol;
@@ -192,6 +194,12 @@ static void DetermineMultiLiteralContextModes(MemoryManager* m,
 
       if ((pos_is_utf8[array_index] & (1 << bit_index)) != 0) {
         ++count_utf8[type];
+
+        const uint8_t symbol = ringbuffer[(start_pos + offset) & mask];
+
+        if ((symbol >= 97 && symbol <= 122) || (symbol >= 65 && symbol <= 90) || (symbol >= 47 && symbol <= 57) || symbol == 43 || symbol == 61){
+          ++count_base64[type];
+        }
       }
 
       --length;
@@ -203,7 +211,11 @@ static void DetermineMultiLiteralContextModes(MemoryManager* m,
 
   for (size_t i = 0; i < split.num_types; ++i) {
     if (count_utf8[i] / (double)count_total[i] > kMinUTF8RatioPerBlockType) {
-      mb->literal_context_modes[i] = CONTEXT_UTF8;
+      if (count_base64[i] / (double)count_total[i] > 0.995) {
+        mb->literal_context_modes[i] = CONTEXT_LSB6;
+      } else {
+        mb->literal_context_modes[i] = CONTEXT_UTF8;
+      }
     } else {
       mb->literal_context_modes[i] = CONTEXT_SIGNED;
     }
@@ -212,6 +224,7 @@ static void DetermineMultiLiteralContextModes(MemoryManager* m,
   BROTLI_FREE(m, pos_is_utf8);
   BROTLI_FREE(m, count_total);
   BROTLI_FREE(m, count_utf8);
+  BROTLI_FREE(m, count_base64);
 }
 
 void BrotliBuildMetaBlock(MemoryManager* m,
