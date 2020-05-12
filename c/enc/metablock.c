@@ -284,7 +284,8 @@ void BrotliBuildMetaBlock(MemoryManager* m,
 }
 
 #define FN(X) X ## Literal
-#include "./metablock_inc.h"  /* NOLINT(build/include) */
+#include "utf8_util.h"
+#include "./metablock_split_lit_inc.h"  /* NOLINT(build/include) */
 #undef FN
 
 #define FN(X) X ## Command

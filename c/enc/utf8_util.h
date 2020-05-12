@@ -18,6 +18,9 @@ extern "C" {
 
 static const double kMinUTF8Ratio = 0.75;
 
+BROTLI_INTERNAL size_t BrotliParseAsUTF8(
+    int* symbol, const uint8_t* input, size_t size);
+
 /* Returns 1 if at least min_fraction of the bytes between pos and
    pos + length in the (data, mask) ring-buffer is UTF8-encoded, otherwise
    returns 0. */

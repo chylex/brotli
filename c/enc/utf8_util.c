@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-static size_t BrotliParseAsUTF8(
+size_t BrotliParseAsUTF8(
     int* symbol, const uint8_t* input, size_t size) {
   /* ASCII */
   if ((input[0] & 0x80) == 0) {
