@@ -307,10 +307,10 @@ static void BrotliBuildMetaBlockGreedy(
   for (i = 0; i < n_commands; ++i) {
     num_literals += commands[i].insert_len_;
   }
+  size_t literals_remaining = num_literals;
 
-  InitBlockSplitterLiteral(m, &lit_blocks, 256, 512, 400.0,
-      num_literals, &mb->literal_split, &mb->literal_histograms,
-      &mb->literal_histograms_size);
+  InitBlockSplitterLiteral(m, &lit_blocks, num_literals, &mb->literal_split,
+      &mb->literal_histograms, &mb->literal_histograms_size);
   if (BROTLI_IS_OOM(m)) return;
   InitBlockSplitterCommand(m, &cmd_blocks, BROTLI_NUM_COMMAND_SYMBOLS, 1024,
       500.0, n_commands, &mb->command_split, &mb->command_histograms,
@@ -326,9 +326,9 @@ static void BrotliBuildMetaBlockGreedy(
     size_t j;
     BlockSplitterAddSymbolCommand(&cmd_blocks, cmd.cmd_prefix_);
     for (j = cmd.insert_len_; j != 0; --j) {
-      uint8_t literal = ringbuffer[pos & mask];
-      BlockSplitterAddSymbolLiteral(&lit_blocks, literal);
+      BlockSplitterAddSymbolLiteral(&lit_blocks, &ringbuffer[pos & mask], literals_remaining);
       ++pos;
+      --literals_remaining;
     }
     pos += CommandCopyLen(&cmd);
     if (CommandCopyLen(&cmd)) {
